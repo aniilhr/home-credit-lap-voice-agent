@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LAP Qualification Console</title>
+    <meta name="description" content="Review console for the Home Credit Loan Against Property qualification voice agent." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230f4c81'/%3E%3Cpath d='M4 11V5h1.6v4.6H9V11z' fill='white'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./css/console.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+      <div class="topbar__brand">
+        <span class="topbar__mark" aria-hidden="true"></span>
+        <div>
+          <div class="topbar__title">LAP Qualification Console</div>
+          <div class="topbar__subtitle">Home Credit · Loan Against Property voice agent</div>
+        </div>
+      </div>
+      <span class="topbar__env">Local reference build</span>
+    </header>
+
+    <div class="layout">
+      <nav class="sidenav" aria-label="Sections">
+        <a href="#/overview" data-route="overview">Overview</a>
+        <a href="#/simulator" data-route="simulator">Call simulator</a>
+        <a href="#/scenarios" data-route="scenarios">Test scenarios</a>
+        <a href="#/rules" data-route="rules">Eligibility rules</a>
+        <a href="#/flow" data-route="flow">Call flow</a>
+        <a href="#/prompt" data-route="prompt">System prompt</a>
+      </nav>
+      <main id="main" class="content" tabindex="-1"></main>
+    </div>
+
+    <noscript>
+      <p class="noscript">This console needs JavaScript. Run <code>npm start</code> and open the printed address.</p>
+    </noscript>
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>

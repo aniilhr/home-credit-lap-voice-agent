@@ -1,0 +1,20 @@
+{
+  "description": "Fields to configure in the voice platform's post-call analysis / data extraction so every test call produces a structured record. Names match the internal state in prompts/system-prompt.md.",
+  "fields": [
+    { "name": "customer_verified", "type": "boolean", "description": "Customer confirmed their identity." },
+    { "name": "callback_time", "type": "string", "description": "Preferred callback time if the customer was busy; empty otherwise." },
+    { "name": "property_type", "type": "enum", "values": ["residential", "commercial", "industrial", "agricultural", "unknown"], "description": "Type of property offered as security." },
+    { "name": "ownership_status", "type": "enum", "values": ["sole", "joint", "unknown"], "description": "Sole or joint ownership." },
+    { "name": "documents_available", "type": "enum", "values": ["yes", "no", "unknown"], "description": "Original property documents available for verification." },
+    { "name": "loan_amount", "type": "string", "description": "Final loan amount agreed in the call, at most 75 lakh." },
+    { "name": "requested_loan_amount", "type": "string", "description": "Amount first requested if it was above 75 lakh." },
+    { "name": "occupation", "type": "enum", "values": ["salaried", "self_employed", "other", "unknown"], "description": "Customer occupation." },
+    { "name": "income_mode", "type": "enum", "values": ["bank", "cash", "unknown"], "description": "How income is received." },
+    { "name": "market_value", "type": "string", "description": "Customer's estimate of the property's current market value." },
+    { "name": "tenure_years", "type": "number", "description": "Desired repayment tenure in years." },
+    { "name": "existing_property_loan", "type": "boolean", "description": "Customer has an existing loan on the property." },
+    { "name": "emi_reduction_request", "type": "boolean", "description": "Customer wants to reduce a current EMI." },
+    { "name": "outcome", "type": "enum", "values": ["QUALIFIED_HANDOFF", "DISQUALIFIED", "TRANSFER_TO_SPECIALIST", "CALLBACK_SCHEDULED", "LOAN_CAP_DECLINED", "NOT_INTERESTED", "WRONG_PERSON", "INCOMPLETE"], "description": "How the call ended." },
+    { "name": "disqualification_reason", "type": "string", "description": "Failed criterion, if disqualified." }
+  ]
+}

@@ -1,0 +1,14 @@
+node_modules/
+build/
+coverage/
+.env
+.env.*
+!.env.example
+config/agent.config.json
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+# Call recordings are shared via public links, not committed
+submission/recordings/
