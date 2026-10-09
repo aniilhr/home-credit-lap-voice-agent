@@ -1,86 +1,98 @@
 import { CHECKLIST } from '/src/engine/index.js';
-import { h, pageHeader, panel, table, tag } from '../dom.js';
+import { getLlmStatus } from '../api.js';
+import { card, h, icon, table, tag } from '../dom.js';
 import { OUTCOME_INFO } from '../format.js';
 
-const STATUS = [
-  ['System prompt with dynamic variables', 'Implemented', 'prompts/system-prompt.md'],
-  ['Eligibility rules and handoff gate', 'Implemented', 'src/engine/rules.js'],
-  ['Reference conversation engine (state machine)', 'Implemented', 'src/engine/conversation.js'],
-  ['Automated tests and 25 call scenarios', 'Implemented', 'tests/, src/scenarios/'],
-  ['Prompt renderer for platform variables', 'Implemented', 'scripts/render-prompt.js'],
-  ['Agent created on a voice platform', 'Needs platform account', 'docs/voice-platform-setup.md'],
-  ['Test calls, recordings and transcripts', 'Needs platform account', 'submission/call-log.md'],
-  ['Public link to call recordings and logs', 'Needs platform account', 'submission/call-log.md'],
-];
-
 const OUTCOME_DESCRIPTIONS = {
-  QUALIFIED_HANDOFF: 'All 7 items answered and every rule passed. A senior loan expert calls back with exact rates.',
-  DISQUALIFIED: 'A mandatory criterion failed. The agent explains politely and ends the call.',
-  TRANSFER_TO_SPECIALIST: 'Existing loan on the property or a request to reduce a current EMI.',
-  CALLBACK_SCHEDULED: 'Customer was busy. A preferred callback time is captured.',
-  LOAN_CAP_DECLINED: 'Customer wanted more than ₹75 lakh and declined the ₹75 lakh option.',
+  QUALIFIED_HANDOFF: 'All 7 items answered and passing. A senior loan expert calls back with exact rates.',
+  DISQUALIFIED: 'A mandatory criterion failed. Polite explanation, call ends.',
+  TRANSFER_TO_SPECIALIST: 'Existing loan on the property, or a request to reduce a current EMI.',
+  CALLBACK_SCHEDULED: 'Customer was busy. Preferred callback time captured.',
+  LOAN_CAP_DECLINED: 'Wanted more than ₹75 lakh and declined the ₹75 lakh option.',
   NOT_INTERESTED: 'Customer declined the offer.',
-  WRONG_PERSON: 'Someone other than the customer answered. No offer details are shared.',
+  WRONG_PERSON: 'Someone else answered. No offer details shared.',
 };
 
-export function renderOverview() {
+const STATUS = [
+  ['Production system prompt (11 dynamic variables)', 'Done', 'prompts/system-prompt.md'],
+  ['Live AI agent on Gemini with end-call tool', 'Needs GEMINI_API_KEY', 'src/llm/agent.js'],
+  ['State tracker + deterministic rule guard', 'Done', 'src/llm/tracker.js, src/llm/audit.js'],
+  ['Live scenario eval against Gemini', 'Needs GEMINI_API_KEY', 'npm run eval:llm'],
+  ['Rules engine and automated test suite', 'Done', 'src/engine/, tests/'],
+  ['Agent on Retell / Bolna, recorded calls, public link', 'Needs platform account', 'docs/voice-platform-setup.md'],
+];
+
+export async function renderOverview() {
+  const llm = await getLlmStatus();
+
   return h(
     'div',
     {},
-    pageHeader(
-      'Overview',
-      'An outbound voice agent that tells existing Home Credit customers about a pre-approved Loan Against Property offer of up to ₹75 lakh, runs a preliminary eligibility check, and hands qualified leads to a senior loan expert.',
+    h(
+      'section',
+      { class: 'hero' },
+      h('p', { class: 'eyebrow' }, 'Home Credit · Loan Against Property'),
+      h('h1', {}, 'A voice agent that qualifies loan leads like an advisor, not a form.'),
+      h(
+        'p',
+        { class: 'lead' },
+        'It verifies the customer, presents a pre-approved offer of up to ₹75 lakh, collects 7 eligibility answers in any order, disqualifies or routes to a transfer specialist the moment it should, and hands off only when every rule passes.',
+      ),
+      h(
+        'div',
+        { class: 'btn-row' },
+        h('a', { class: 'btn btn--primary', href: '#/simulator' }, icon('phone'), 'Start a live call'),
+        h('a', { class: 'btn btn--ghost', href: '#/scenarios' }, icon('play'), 'Run scenarios'),
+        h('a', { class: 'btn btn--ghost', href: '#/prompt' }, 'View system prompt'),
+        h(
+          'span',
+          { class: 'status-chip', style: 'margin-left:4px' },
+          h('span', { class: `dot ${llm.configured ? 'dot--pass' : 'dot--warn'}` }),
+          llm.configured ? `Live AI ready · ${llm.model}` : 'Live AI needs GEMINI_API_KEY in .env',
+        ),
+      ),
     ),
+
     h(
       'div',
-      { class: 'grid-2' },
-      panel(
+      { class: 'grid-3', style: 'margin-bottom:16px' },
+      stepCard('01', 'System prompt drives the agent', 'Gemini runs the exact prompt you paste into Retell or Bolna, with every variable filled for the call. It speaks and decides; nothing is scripted.'),
+      stepCard('02', 'A tracker reads the call', 'After each customer turn, a second temperature-0 model call extracts the 7 eligibility facts as schema-checked JSON.'),
+      stepCard('03', 'Rules judge every turn', 'Deterministic code checks the agent against the brief: handoff gate, immediate disqualification, transfer routing, ₹75 lakh limit, no invented rates.'),
+    ),
+
+    h(
+      'div',
+      { class: 'grid-2', style: 'margin-bottom:16px;align-items:start' },
+      card(
         'Eligibility checklist',
+        h('ol', { class: 'list' }, CHECKLIST.map((item, i) => h('li', {}, h('span', { class: 'list__num' }, String(i + 1).padStart(2, '0')), item.label))),
+      ),
+      card(
+        'Call outcomes',
         h(
-          'ol',
-          { class: 'small', style: 'margin:0;padding-left:20px' },
-          CHECKLIST.map((item) => h('li', {}, item.label)),
-        ),
-      ),
-      panel(
-        'How each turn is processed',
-        h(
-          'ol',
-          { class: 'small', style: 'margin:0;padding-left:20px' },
-          h('li', {}, 'Extract every fact in the customer’s reply, including out-of-order answers.'),
-          h('li', {}, 'Store new facts; the latest clear answer replaces earlier ones.'),
-          h('li', {}, 'Stop immediately if a mandatory criterion fails.'),
-          h('li', {}, 'Route to the loan-transfer specialist on an existing loan or EMI-reduction request.'),
-          h('li', {}, 'Ask only the earliest unanswered checklist item.'),
-          h('li', {}, 'Hand off only when all 7 items are answered and passing.'),
-        ),
-      ),
-    ),
-    panel(
-      'Call outcomes',
-      table(
-        ['Outcome', 'When it happens'],
-        Object.entries(OUTCOME_INFO).map(([key, info]) =>
-          h('tr', {}, h('td', { class: 'nowrap' }, tag(info.label, info.variant)), h('td', {}, OUTCOME_DESCRIPTIONS[key])),
-        ),
-      ),
-      { bodyClass: '' },
-    ),
-    panel(
-      'Implementation status',
-      table(
-        ['Deliverable', 'Status', 'Location'],
-        STATUS.map(([name, status, where]) =>
-          h(
-            'tr',
-            {},
-            h('td', {}, name),
-            h('td', { class: 'nowrap' }, tag(status, status === 'Implemented' ? 'pass' : 'warn')),
-            h('td', { class: 'mono small' }, where),
+          'ul',
+          { class: 'list' },
+          Object.entries(OUTCOME_INFO).map(([key, info]) =>
+            h('li', { style: 'flex-direction:column;gap:4px' }, h('span', {}, tag(info.label, info.variant)), h('span', { class: 'muted small' }, OUTCOME_DESCRIPTIONS[key])),
           ),
         ),
       ),
-      { bodyClass: '' },
+    ),
+
+    card(
+      'Implementation status',
+      table(
+        ['Deliverable', 'Status', 'Where'],
+        STATUS.map(([name, status, where]) =>
+          h('tr', {}, h('td', {}, name), h('td', { class: 'nowrap' }, tag(status, status === 'Done' ? 'pass' : 'warn')), h('td', { class: 'mono small muted' }, where)),
+        ),
+      ),
+      { flush: true },
     ),
   );
+}
+
+function stepCard(num, title, text) {
+  return h('div', { class: 'glass step-card' }, h('div', { class: 'step-card__num' }, num), h('h3', {}, title), h('p', {}, text));
 }

@@ -1,7 +1,7 @@
 {
   "name": "home-credit-lap-voice-agent",
   "version": "1.0.0",
-  "description": "System prompt, qualification logic, test suite and review console for a Home Credit Loan Against Property qualification voice agent.",
+  "description": "System prompt, live Gemini test console, rules engine and test suite for a Home Credit Loan Against Property qualification voice agent.",
   "type": "module",
   "private": true,
   "engines": {
@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node scripts/serve.js",
     "test": "node --test tests/*.test.js",
+    "eval:llm": "node scripts/eval-llm.js",
     "render:prompt": "node scripts/render-prompt.js"
   }
 }

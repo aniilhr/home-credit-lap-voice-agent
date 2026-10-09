@@ -15,7 +15,7 @@ const LABELS = {
 };
 
 export function formatValue(field, value) {
-  if (value === UNKNOWN || value === null || value === undefined) return 'UNKNOWN';
+  if (value === UNKNOWN || value === null || value === undefined) return '—';
   if (typeof value === 'boolean') {
     if (field === 'documents_available') return value ? 'Available' : 'Not available';
     return value ? 'Yes' : 'No';
@@ -37,6 +37,7 @@ export const OUTCOME_INFO = {
 
 export function outcomeLabel(outcome) {
   if (!outcome) return { label: 'In progress', variant: '' };
+  if (outcome === 'OTHER') return { label: 'Call ended', variant: '' };
   return OUTCOME_INFO[outcome] ?? { label: outcome, variant: '' };
 }
 

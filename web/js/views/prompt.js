@@ -1,6 +1,6 @@
 import { renderPrompt as fillTemplate, runtimeDateValues } from '/src/prompt/render.js';
 import { PROMPT_VARIABLES } from '/src/prompt/variables.js';
-import { h, pageHeader, panel } from '../dom.js';
+import { card, h, icon, pageHead } from '../dom.js';
 import { callSetup } from '../store.js';
 
 let templateCache = null;
@@ -102,16 +102,19 @@ export async function renderPrompt() {
     update();
   };
 
-  const copyButton = h('button', { class: 'btn', type: 'button', onclick: (e) => copy(e.currentTarget) }, 'Copy prompt');
+  const copyLabel = h('span', {}, 'Copy prompt');
+  const copyButton = h('button', { class: 'btn btn--primary', type: 'button', onclick: () => copy(copyLabel) }, icon('copy'), copyLabel);
 
   const view = h(
     'div',
     {},
-    pageHeader(
+    pageHead(
+      'Prompt',
       'System prompt',
-      'The production prompt from prompts/system-prompt.md. Paste the raw template into a platform that supports dynamic variables, or fill the variables here for platforms and playgrounds that do not.',
+      'The production prompt from prompts/system-prompt.md — the same text the live Gemini agent runs. Paste the raw template into a platform that supports {{variables}}, or fill the variables here.',
     ),
-    panel(
+    h('div', { class: 'stack' },
+    card(
       'Variables',
       h(
         'details',
@@ -121,21 +124,22 @@ export async function renderPrompt() {
         h(
           'div',
           { class: 'btn-row', style: 'margin-top:16px' },
-          h('label', { for: 'fill-values', class: 'btn-row', style: 'font-weight:400' }, fillToggle, 'Fill variables in the preview'),
-          h('button', { class: 'btn btn--secondary', type: 'button', onclick: useClock }, 'Use current date and time'),
+          h('label', { for: 'fill-values', class: 'check' }, fillToggle, 'Fill variables in the preview'),
+          h('button', { class: 'btn btn--ghost', type: 'button', onclick: useClock }, 'Use current date and time'),
         ),
       ),
     ),
-    panel('Prompt', preview, {
+    card('Prompt', preview, {
       actions: h(
         'div',
         { class: 'btn-row' },
         status,
-        h('button', { class: 'btn btn--secondary', type: 'button', onclick: download }, 'Download .txt'),
+        h('button', { class: 'btn btn--ghost', type: 'button', onclick: download }, icon('download'), 'Download'),
         copyButton,
       ),
-      bodyClass: '',
+      flush: true,
     }),
+    ),
   );
   update();
   return view;

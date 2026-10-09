@@ -1,14 +1,12 @@
 # Home Credit LAP Qualification Voice Agent
 
-System prompt, qualification logic and test suite for an outbound voice agent that qualifies existing Home Credit customers for a pre-approved Loan Against Property (LAP) offer. Built for the SalesAgents AI – AI Intern (Prompt Engineer) assignment.
+System prompt, live test console and evaluation suite for an outbound voice agent that qualifies existing Home Credit customers for a pre-approved Loan Against Property (LAP) offer. Built for the SalesAgents AI – AI Intern (Prompt Engineer) assignment.
 
 ## Problem
 
-Home Credit wants to call existing customers about a pre-approved LAP offer of up to ₹75 lakh and run a preliminary eligibility check before a senior loan expert takes over. The call has to feel like a conversation with an advisor, not a questionnaire. Customers answer in full sentences, interrupt, give answers out of order and correct themselves. The agent still has to apply the eligibility rules exactly.
+Home Credit wants to call existing customers about a pre-approved LAP offer of up to ₹75 lakh and run a preliminary eligibility check before a senior loan expert takes over. The call has to feel like a conversation with an advisor, not a questionnaire. Customers answer in full sentences, interrupt, answer out of order and correct themselves. The agent still has to apply the eligibility rules exactly.
 
 ## Objective
-
-The agent must:
 
 1. Verify the customer and check they can talk. If they are busy, capture a callback time.
 2. Present the offer as a reward for their loyalty.
@@ -17,18 +15,19 @@ The agent must:
 5. Disqualify immediately when a rule fails.
 6. Hand off to a senior loan expert only after all 7 items are answered and passing.
 
-## Deliverables
+## How it works
 
-| Deliverable | Location |
-|---|---|
-| System prompt (paste into Retell / Bolna) | [`prompts/system-prompt.md`](prompts/system-prompt.md) |
-| Conversation flow and state machine | [`docs/conversation-flow.md`](docs/conversation-flow.md) |
-| Eligibility rules | [`docs/eligibility-rules.md`](docs/eligibility-rules.md) |
-| Test matrix (28 scenarios) | [`docs/test-scenarios.md`](docs/test-scenarios.md) |
-| Sample transcripts | [`docs/sample-transcripts.md`](docs/sample-transcripts.md) |
-| Voice platform setup | [`docs/voice-platform-setup.md`](docs/voice-platform-setup.md) |
-| Call log template for submission | [`submission/call-log.md`](submission/call-log.md) |
-| Reference engine, tests, review console | `src/`, `tests/`, `web/` |
+The agent is the system prompt running on a large language model; no replies are scripted. The repository adds two layers around the prompt so its behaviour can be tested and measured:
+
+| Layer | What it does | Where |
+|---|---|---|
+| **Agent** | Gemini runs [`prompts/system-prompt.md`](prompts/system-prompt.md) with every variable filled for the call. It hangs up through an `end_call` function, just as on Retell or Bolna. | `src/llm/agent.js` |
+| **State tracker** | After each customer turn, a second temperature-0 Gemini call extracts the 7 eligibility facts as schema-constrained JSON. | `src/llm/tracker.js` |
+| **Rule guard** | Deterministic code judges each agent turn against the brief: handoff gate, immediate disqualification, transfer routing, the ₹75 lakh limit, no invented rates, and voice style. | `src/llm/audit.js`, `src/engine/rules.js` |
+
+The tracker and rule guard let model behaviour be graded with code instead of by eye. They are test tooling only: on a voice platform the agent runs from the prompt alone.
+
+There is also a **rules engine** (`src/engine/`), a deterministic reference implementation of the same flow. It uses pattern matching and fixed reply templates, so it is not AI. It exists so the business logic can be unit-tested offline, and the console falls back to it when no API key is set.
 
 ## Voice agent flow
 
@@ -58,70 +57,73 @@ The full Mermaid diagram is in [`docs/conversation-flow.md`](docs/conversation-f
 | 6 | Market value | Captured only | No threshold |
 | 7 | Tenure | 3–15 years inclusive | Below 3 or above 15 |
 
-The brief sets no minimum property value, interest rate, credit score, age or income requirement, so the agent applies none.
+The brief sets no minimum property value, interest rate, credit score, age or income requirement, so none is applied. Details and interpretation notes: [`docs/eligibility-rules.md`](docs/eligibility-rules.md).
 
 ## State management
 
-The prompt tells the model to keep a private qualification state and to run the same steps after every customer reply:
+The prompt tells the model to keep a private qualification state and run the same steps after every customer reply:
 
 1. **Extract** every fact in the reply, including answers to questions not yet asked.
-2. **Store** them. The latest clear answer replaces an earlier one, and uncertain answers stay `UNKNOWN`.
+2. **Store** them. The latest clear answer wins, and uncertain answers stay `UNKNOWN`.
 3. **Check rules** and disqualify immediately on a failure.
-4. **Check transfer intent**: an existing loan on the property or a request to reduce the current EMI.
+4. **Check transfer intent**: an existing loan on the property, or a request to reduce the current EMI.
 5. **Ask only the earliest unanswered item**, so nothing is asked twice and skipped items are picked up later.
 
 State fields: `customer_verified`, `property_type`, `ownership_status`, `documents_available`, `loan_amount`, `requested_loan_amount`, `occupation`, `income_mode`, `market_value`, `tenure`, `existing_property_loan`, `emi_reduction_request`, `disqualified`, `transfer_required`, `callback_time`.
 
-The same algorithm is implemented deterministically in [`src/engine/`](src/engine/). That code makes the business logic testable without a platform account. It is a reference model of the prompt's behaviour, not a runtime the voice agent depends on.
+## Quick start
 
-## Transfer logic
+Requires Node.js 20+. There are no npm dependencies to install.
 
-The standard flow is for a fresh loan. If the customer says at any point that there is already a loan on the property, or that they want to reduce their current EMI, the agent stops the fresh-loan flow. It tells them a loan-transfer specialist will contact them shortly and ends the call. Originals held by a bank count as an existing loan. A car or personal loan does not count, and neither does a question about the EMI on the new loan.
+```bash
+cp .env.example .env     # then paste your key: GEMINI_API_KEY=...
+npm start                # http://127.0.0.1:4173/web/
+```
+
+Get a Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey). In the console, open **Live call**, fill in the customer and agent names, and start talking: type, or use the mic in Chrome or Edge. Turn on spoken replies with the speaker icon. The side panels show the tracked qualification state and the rule-guard result for every turn.
+
+Without a key, the console runs the offline rules engine and says so clearly.
 
 ## Testing
 
-```bash
-npm test
-```
+| Command | What it runs | Needs a key |
+|---|---|---|
+| `npm test` | 122 automated tests: rule boundaries, the rules engine, 25 scripted scenarios, prompt checks, the Gemini client (mocked HTTP), the tracker, the rule guard and the API server | No |
+| `npm run eval:llm` | The 25 scripted scenarios against the **live Gemini agent**. Each call is graded on how it ended and on the extracted facts, using the deterministic rules. Report: `build/llm-eval-report.json` | Yes |
+| `npm run eval:llm -- --only S02,S10` | Selected scenarios only | Yes |
 
-97 tests across five files, using Node's built-in test runner with no dependencies:
+Live evals cost real API calls: roughly (customer turns + 2) requests per scenario. Model output varies between runs, so treat the pass rate as a measurement rather than a guarantee. A scripted customer line can also land on a question the model asked in a different order.
 
-| File | Covers |
-|---|---|
-| `tests/rules.test.js` | Every rule and boundary (tenure 2.9 / 3 / 15 / 15.5, ₹75 lakh exactly), the handoff gate blocked for each missing item |
-| `tests/extract.test.js` | Indian currency parsing, out-of-order and multi-fact extraction, corrections, negation, ambiguity, transfer-intent detection |
-| `tests/conversation.test.js` | Immediate disqualification, the ₹75 lakh branch, transfer routing, busy branch, the handoff gate, no invented rates |
-| `tests/scenarios.test.js` | 25 scripted calls (S01–S25) from `src/scenarios/scenarios.js` |
-| `tests/prompt.test.js` | The prompt uses all 11 variables and all 7 items in order, and contains no percentages or invented rupee thresholds |
+The live-call test plan for the voice platform is in [`docs/test-scenarios.md`](docs/test-scenarios.md). Results go in [`submission/call-log.md`](submission/call-log.md).
 
-Live-call testing on the voice platform follows [`docs/test-scenarios.md`](docs/test-scenarios.md), with results recorded in [`submission/call-log.md`](submission/call-log.md).
+## Environment variables
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `GEMINI_API_KEY` | Enables live AI mode and `eval:llm` | — |
+| `GEMINI_MODEL` | Gemini model id | `gemini-flash-latest` |
+| `GEMINI_TEMPERATURE` | Agent temperature (tracker always uses 0) | `0.4` |
+| `GEMINI_TIMEOUT_MS` | Per-request timeout | `30000` |
+| `GEMINI_THINKING` | Reasoning depth: `low`/`high`, or a token budget such as `0` for 2.5-series models | model default |
+| `PORT`, `HOST` | Console server address | `4173`, `127.0.0.1` |
+
+`.env` is git-ignored. The key stays on the local server: it is sent to Google in a request header and never reaches the browser.
 
 ## Project structure
 
 ```
-prompts/system-prompt.md      Production system prompt
-docs/                         Flow, rules, test matrix, transcripts, platform setup
-config/                       Example call config, post-call extraction fields
-src/engine/                   Reference qualification engine (rules, extraction, state machine)
-src/prompt/                   Prompt variable list and renderer
-src/scenarios/                Scripted call scenarios and runner (shared by tests and UI)
-tests/                        Automated tests
-web/                          Qualification console (static, no build step)
-scripts/                      Local server and prompt renderer
-submission/                   Call log template for recordings and transcripts
+prompts/system-prompt.md   Production system prompt (paste into Retell / Bolna)
+src/llm/                   Gemini client, agent turn, state tracker, rule guard, live eval
+src/engine/                Rules, state helpers and the offline reference engine
+src/server/                Local API + static server, .env loader
+src/scenarios/             25 scripted calls shared by tests, console and live eval
+src/prompt/                Prompt variables and renderer
+web/                       Console UI (vanilla JS modules, no build step)
+scripts/                   serve, eval-llm, render-prompt
+tests/                     Automated tests (node:test)
+docs/                      Flow, rules, test matrix, transcripts, platform setup
+submission/                Call log template for recordings and transcripts
 ```
-
-## Local setup
-
-Requires Node.js 20 or newer. There are no npm dependencies to install.
-
-```bash
-npm test                 # run the test suite
-npm start                # console at http://127.0.0.1:4173/web/
-npm run render:prompt    # print the prompt with config values filled in
-```
-
-The console has a call simulator showing live qualification state, a runner that replays all 25 scenarios, the rule tables, the call flow, and a prompt preview with copy and download.
 
 ## Voice platform setup
 
@@ -130,28 +132,16 @@ See [`docs/voice-platform-setup.md`](docs/voice-platform-setup.md). In short:
 1. Create an agent on Retell AI or Bolna and paste the prompt. For Bolna's `{variable}` syntax, use `npm run render:prompt -- --single-brace`.
 2. Set the dynamic variables and pick a voice that matches `agent_gender`.
 3. Enable the end-call function.
-4. Run the scripted test calls and share the recordings and transcripts through a public link.
+4. Record the scripted test calls and share the recordings and transcripts through a public link.
 
-## Environment variables
+## Implemented vs. requires access
 
-Copy `.env.example` to `.env` if you need to change the console's port.
-
-| Variable | Used by | Default |
-|---|---|---|
-| `PORT` | `scripts/serve.js` | `4173` |
-| `HOST` | `scripts/serve.js` | `127.0.0.1` |
-
-Platform API keys are not needed: the agent is configured in the platform dashboard. `.env.example` lists reserved names, commented out, for a future integration. No code reads them.
-
-## Implemented vs. requires platform access
-
-| Implemented in this repository | Requires a voice-platform account |
+| Implemented in this repository | Requires your account / key |
 |---|---|
-| System prompt with all required variables | Creating the agent and selecting a voice |
-| Eligibility rules, state machine, handoff gate | Running real calls |
-| 97 automated tests, 25 scripted scenarios | Call recordings and platform transcripts |
-| Prompt renderer (double / single brace) | Public link to recordings and call logs |
-| Review console and documentation | Post-call extraction setup (fields provided) |
+| System prompt with all 11 required variables | Gemini API key for live AI mode and `eval:llm` |
+| Live AI console: Gemini agent, voice in/out, state tracker, rule guard | Agent created on Retell AI / Bolna with a voice |
+| Rules engine, 25 scenarios, 122 automated tests | Recorded test calls and platform transcripts |
+| Prompt renderer for double- and single-brace platforms | Public link to recordings and call logs |
 
 ## Submission checklist
 
@@ -159,7 +149,7 @@ Platform API keys are not needed: the agent is configured in the platform dashbo
 - [x] All 7 eligibility items, disqualification, transfer, busy and ₹75 lakh logic
 - [x] Dynamic variables: company, customer, agent name and gender, date/day/time, RAG context, language, history, utterance
 - [x] Test scenarios and expected behaviour documented
+- [ ] `npm run eval:llm` run with your Gemini key; prompt fixed for any failures
 - [ ] Agent created on Retell AI / Bolna with a professional voice
 - [ ] Test calls recorded across the scenarios in `submission/call-log.md`
-- [ ] Recordings and transcripts uploaded to a public folder
-- [ ] Public link added to `submission/call-log.md` and the submission form
+- [ ] Recordings and transcripts uploaded to a public folder; link added to the submission

@@ -1,4 +1,4 @@
-import { h, pageHeader, panel } from '../dom.js';
+import { h, pageHead } from '../dom.js';
 
 const STAGES = [
   {
@@ -46,12 +46,14 @@ export function renderFlow() {
   return h(
     'div',
     {},
-    pageHeader(
+    pageHead(
       'Call flow',
-      'Stages of the call and the branches that can end it early. The Mermaid diagram in docs/conversation-flow.md shows the same flow as a state machine.',
+      'Stages and exits',
+      'Each stage, and the branches that can end the call early. docs/conversation-flow.md has the same flow as a Mermaid state machine.',
     ),
-    panel(
-      null,
+    h(
+      'section',
+      { class: 'glass card--pad' },
       h(
         'ol',
         { class: 'steps' },
@@ -59,9 +61,9 @@ export function renderFlow() {
           h(
             'li',
             {},
-            h('div', { style: 'font-weight:600' }, stage.title),
-            h('div', { class: 'small' }, stage.detail),
-            stage.branches.length ? h('ul', { class: 'branches small' }, stage.branches.map((b) => h('li', {}, b))) : null,
+            h('div', { class: 'steps__title' }, stage.title),
+            h('div', { class: 'steps__detail' }, stage.detail),
+            stage.branches.length ? h('ul', { class: 'branches' }, stage.branches.map((b) => h('li', {}, b))) : null,
           ),
         ),
       ),

@@ -4,44 +4,49 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>LAP Qualification Console</title>
-    <meta name="description" content="Review console for the Home Credit Loan Against Property qualification voice agent." />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230f4c81'/%3E%3Cpath d='M4 11V5h1.6v4.6H9V11z' fill='white'/%3E%3C/svg%3E" />
+    <meta name="description" content="Live test console for the Home Credit Loan Against Property qualification voice agent." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%230d1424'/%3E%3Cpath d='M5 4v8h6' stroke='white' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;550;600;650;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <script>
+      // Apply the saved theme before first paint to avoid a flash.
+      try {
+        const theme = localStorage.getItem('lap-theme');
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
     <link rel="stylesheet" href="./css/console.css" />
   </head>
   <body>
-    <a class="skip-link" href="#main">Skip to content</a>
-    <header class="topbar">
-      <div class="topbar__brand">
-        <span class="topbar__mark" aria-hidden="true"></span>
-        <div>
-          <div class="topbar__title">LAP Qualification Console</div>
-          <div class="topbar__subtitle">Home Credit · Loan Against Property voice agent</div>
-        </div>
+    <div class="backdrop" aria-hidden="true"></div>
+    <a class="skip-link glass" href="#main">Skip to content</a>
+
+    <header class="header glass">
+      <a class="brand" href="#/overview" aria-label="LAP Console home">
+        <span class="brand__mark" aria-hidden="true">L</span>
+        <span class="brand__name">LAP Console <span class="brand__sub">· Home Credit</span></span>
+      </a>
+      <nav class="nav" aria-label="Sections">
+        <a href="#/overview" data-route="overview">Overview</a>
+        <a href="#/simulator" data-route="simulator">Live call</a>
+        <a href="#/scenarios" data-route="scenarios">Scenarios</a>
+        <a href="#/rules" data-route="rules">Rules</a>
+        <a href="#/flow" data-route="flow">Call flow</a>
+        <a href="#/prompt" data-route="prompt">Prompt</a>
+      </nav>
+      <div class="header__tools">
+        <span class="status-chip" id="llm-status" title="Live AI status">
+          <span class="dot"></span><span class="status-chip__label">Checking…</span>
+        </span>
+        <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle colour theme"></button>
       </div>
-      <span class="topbar__env">Local reference build</span>
     </header>
 
-    <div class="layout">
-      <nav class="sidenav" aria-label="Sections">
-        <a href="#/overview" data-route="overview">Overview</a>
-        <a href="#/simulator" data-route="simulator">Call simulator</a>
-        <a href="#/scenarios" data-route="scenarios">Test scenarios</a>
-        <a href="#/rules" data-route="rules">Eligibility rules</a>
-        <a href="#/flow" data-route="flow">Call flow</a>
-        <a href="#/prompt" data-route="prompt">System prompt</a>
-      </nav>
-      <main id="main" class="content" tabindex="-1"></main>
-    </div>
+    <main id="main" class="content" tabindex="-1"></main>
 
-    <noscript>
-      <p class="noscript">This console needs JavaScript. Run <code>npm start</code> and open the printed address.</p>
-    </noscript>
+    <noscript><div class="noscript glass">This console needs JavaScript. Run <code>npm start</code> and open the printed address.</div></noscript>
     <script type="module" src="./js/app.js"></script>
   </body>
 </html>

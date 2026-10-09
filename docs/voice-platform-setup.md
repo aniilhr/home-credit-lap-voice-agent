@@ -2,7 +2,9 @@
 
 This repository holds the prompt, rules and tests. Running real calls needs an account on a voice platform. The assignment allows Retell AI, Bolna or a similar platform. The steps below were checked against public documentation and community answers at the time of writing. Platform dashboards change, so check the current docs if a menu or field name differs.
 
-Nothing in this repository calls a platform API, and no platform credentials are stored here.
+Nothing in this repository calls a voice-platform API, and no platform credentials are stored here.
+
+Before creating the platform agent, try the prompt locally: put a Gemini key in `.env`, run `npm start`, and talk to the agent in the console's **Live call** view. Then run `npm run eval:llm` to replay all 25 scripted scenarios against it. Fixing prompt issues there is faster and cheaper than re-recording phone calls.
 
 ## 1. Prepare the prompt
 

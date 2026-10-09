@@ -1,5 +1,5 @@
 import { CHECKLIST, RULES } from '/src/engine/index.js';
-import { h, pageHeader, panel, table } from '../dom.js';
+import { card, h, pageHead, table } from '../dom.js';
 
 const BEHAVIOUR = {
   property_type: 'Agricultural → disqualify immediately and end the call.',
@@ -28,10 +28,10 @@ export function renderRules() {
       h(
         'tr',
         {},
-        h('td', { class: 'nowrap' }, i === 0 ? `${index + 1}. ${item.label}` : ''),
+        h('td', { class: 'nowrap', style: 'font-weight:550' }, i === 0 ? `${index + 1}. ${item.label}` : ''),
         h('td', {}, RULES[field].eligible),
         h('td', {}, RULES[field].ineligible),
-        h('td', {}, BEHAVIOUR[field]),
+        h('td', { class: 'muted' }, BEHAVIOUR[field]),
       ),
     ),
   );
@@ -39,27 +39,30 @@ export function renderRules() {
   return h(
     'div',
     {},
-    pageHeader(
+    pageHead(
+      'Rules',
       'Eligibility rules',
-      'Every rule below comes from the assignment brief. The table is generated from the same rule definitions the engine and tests use.',
+      'Every rule comes from the assignment brief. This table is generated from the same definitions the rules engine, the rule guard and the tests use.',
     ),
-    panel('Checklist rules', table(['Item', 'Eligible', 'Not eligible / special', 'Agent behaviour'], rows), { bodyClass: '' }),
-    panel(
+    h('div', { class: 'stack' },
+    card('Checklist rules', table(['Item', 'Eligible', 'Not eligible / special', 'Agent behaviour'], rows), { flush: true }),
+    card(
       'Routing rules',
       table(
         ['Situation', 'Agent behaviour'],
         ROUTING.map(([situation, behaviour]) => h('tr', {}, h('td', {}, situation), h('td', {}, behaviour))),
       ),
-      { bodyClass: '' },
+      { flush: true },
     ),
-    panel(
+    card(
       'Not part of the preliminary check',
       h(
         'div',
         {},
         h('p', { class: 'small muted' }, 'The brief defines no condition for these, so the agent neither asks about them nor applies them:'),
-        h('p', { class: 'small' }, NOT_CHECKED.join(' · ')),
+        h('div', { class: 'btn-row' }, NOT_CHECKED.map((x) => h('span', { class: 'tag' }, x))),
       ),
+    ),
     ),
   );
 }

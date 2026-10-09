@@ -1,44 +1,43 @@
 import { SCENARIOS } from '/src/scenarios/scenarios.js';
 import { runScenario } from '/src/scenarios/runner.js';
-import { h, pageHeader, panel, tag } from '../dom.js';
+import { card, h, icon, pageHead, tag } from '../dom.js';
 import { outcomeLabel } from '../format.js';
 
 export function renderScenarios() {
   const body = h('tbody');
   const summary = h('span', { class: 'small muted', 'aria-live': 'polite' });
-  const runButton = h('button', { class: 'btn btn--secondary', type: 'button', onclick: run }, 'Run again');
 
   function run() {
     const results = SCENARIOS.map((scenario) => ({ scenario, result: runScenario(scenario) }));
     const passed = results.filter((r) => r.result.passed).length;
-    summary.textContent = `${passed} of ${results.length} passed · run at ${new Date().toLocaleTimeString()}`;
+    summary.textContent = `${passed}/${results.length} passed · ${new Date().toLocaleTimeString()}`;
     body.replaceChildren(...results.flatMap(({ scenario, result }) => rowsFor(scenario, result)));
   }
 
   const view = h(
     'div',
     {},
-    pageHeader(
-      'Test scenarios',
-      'Scripted customer conversations run through the reference engine in your browser. The same scenarios run in the automated test suite (npm test). Select a row to read the transcript.',
+    pageHead(
+      'Scenarios',
+      'Scripted calls',
+      'Twenty-five customer scripts covering every rule and edge case. Here they replay through the rules engine in your browser (same as npm test). To run the same scripts against the live Gemini agent, use npm run eval:llm.',
     ),
-    panel(
-      'Scenario results',
+    card(
+      h('h2', {}, 'Results'),
       h(
         'div',
         { class: 'table-wrap' },
         h(
           'table',
           {},
-          h(
-            'thead',
-            {},
-            h('tr', {}, ['ID', 'Scenario', 'Category', 'Expected outcome', 'Result'].map((x) => h('th', { scope: 'col' }, x))),
-          ),
+          h('thead', {}, h('tr', {}, ['ID', 'Scenario', 'Category', 'Expected', 'Result'].map((x) => h('th', { scope: 'col' }, x)))),
           body,
         ),
       ),
-      { actions: h('div', { class: 'btn-row' }, summary, runButton), bodyClass: '' },
+      {
+        flush: true,
+        actions: h('div', { class: 'btn-row' }, summary, h('button', { class: 'btn btn--ghost', type: 'button', onclick: run }, icon('play'), 'Run again')),
+      },
     ),
   );
   run();
@@ -49,11 +48,7 @@ function rowsFor(scenario, result) {
   const expectedOutcome = scenario.expect?.outcome;
   const expected =
     expectedOutcome === null ? { label: 'Call continues', variant: '' } : expectedOutcome ? outcomeLabel(expectedOutcome) : null;
-  const detail = h(
-    'tr',
-    { class: 'detail-row', hidden: true },
-    h('td', { colspan: 5 }, detailFor(scenario, result)),
-  );
+  const detail = h('tr', { class: 'detail-row', hidden: true }, h('td', { colspan: 5 }, detailFor(scenario, result)));
   const toggle = () => {
     detail.hidden = !detail.hidden;
     row.setAttribute('aria-expanded', String(!detail.hidden));
@@ -72,7 +67,7 @@ function rowsFor(scenario, result) {
         }
       },
     },
-    h('td', { class: 'mono nowrap' }, scenario.id),
+    h('td', { class: 'mono nowrap faint' }, scenario.id),
     h('td', {}, scenario.title),
     h('td', { class: 'nowrap muted' }, scenario.category),
     h('td', {}, expected ? tag(expected.label, expected.variant) : '—'),
@@ -84,21 +79,14 @@ function rowsFor(scenario, result) {
 function detailFor(scenario, result) {
   return h(
     'div',
-    { style: 'padding:8px 0' },
-    scenario.note ? h('p', { class: 'small muted' }, scenario.note) : null,
-    result.failures.length
-      ? h('ul', { class: 'small', style: 'color:var(--fail);margin:0 0 12px' }, result.failures.map((f) => h('li', {}, f)))
-      : null,
+    { style: 'padding:6px 0;display:grid;gap:10px' },
+    scenario.note ? h('p', { class: 'small muted', style: 'margin:0' }, scenario.note) : null,
+    result.failures.length ? h('ul', { class: 'small', style: 'color:var(--fail);margin:0' }, result.failures.map((f) => h('li', {}, f))) : null,
     h(
       'div',
-      { class: 'small', style: 'display:grid;gap:6px' },
+      { style: 'display:grid;gap:8px' },
       result.transcript.map((turn) =>
-        h(
-          'div',
-          {},
-          h('strong', {}, turn.role === 'agent' ? 'Agent: ' : 'Customer: '),
-          turn.text,
-        ),
+        h('div', { class: `msg msg--${turn.role}`, style: 'max-width:88%' }, h('div', { class: 'msg__bubble', style: 'font-size:13px' }, turn.text)),
       ),
     ),
   );
