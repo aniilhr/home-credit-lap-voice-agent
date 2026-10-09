@@ -26,11 +26,36 @@ const loadTemplate = () => readFile(resolve(root, 'prompts/system-prompt.md'), '
 
 const server = createServer(createRequestHandler({ root, llm, loadTemplate, log: (msg) => console.error(msg) }));
 
-server.listen(PORT, HOST, () => {
-  console.log(`Qualification console: http://${HOST}:${PORT}/web/`);
-  console.log(
-    settings.configured
-      ? `Live AI mode: Gemini (${settings.model})`
-      : 'Live AI mode: off — add GEMINI_API_KEY to .env to enable it. Rules-engine mode works without a key.',
-  );
-});
+const MAX_PORT_ATTEMPTS = 10;
+
+// If the port is taken (often an earlier `npm start` still running), try the next few ports.
+function listen(port, attempt = 1) {
+  server.once('error', (error) => {
+    if (error.code === 'EADDRINUSE' && attempt < MAX_PORT_ATTEMPTS) {
+      console.warn(`Port ${port} is already in use, trying ${port + 1}…`);
+      listen(port + 1, attempt + 1);
+      return;
+    }
+    if (error.code === 'EADDRINUSE') {
+      console.error(
+        `Ports ${PORT}–${port} are all in use. Stop the other server (Ctrl+C in its terminal) or set PORT in .env to a free port.`,
+      );
+    } else if (error.code === 'EACCES') {
+      console.error(`No permission to use port ${port}. Set PORT in .env to a port above 1024.`);
+    } else {
+      console.error(`Could not start the server: ${error.message}`);
+    }
+    process.exit(1);
+  });
+
+  server.listen(port, HOST, () => {
+    console.log(`Qualification console: http://${HOST}:${port}/web/`);
+    console.log(
+      settings.configured
+        ? `Live AI mode: Gemini (${settings.model})`
+        : 'Live AI mode: off — add GEMINI_API_KEY to .env to enable it. Rules-engine mode works without a key.',
+    );
+  });
+}
+
+listen(PORT);
